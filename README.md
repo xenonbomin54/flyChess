@@ -8,21 +8,9 @@ The project uses publicly available fruit fly connectome data and attempts to co
 
 ## 🎯 Goal
 
-The goal of this project is not to create a conventional chess engine.
+FlyChess explores what happens when a fruit fly's neural connections are connected to a chess game.
 
-Instead, FlyChess explores a different question:
-
-> **Can a computational model inspired by the fruit fly brain make meaningful decisions in chess?**
-
-The project focuses on connecting:
-
-Fruit Fly Connectome
-↓
-Neural Simulation
-↓
-Decision Making
-↓
-Chess Move
+Using real fruit fly connectome data, the project experiments with turning neural activity into chess moves.
 
 ## 🧠 Approach
 
