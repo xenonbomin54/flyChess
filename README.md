@@ -17,11 +17,11 @@ Instead, FlyChess explores a different question:
 The project focuses on connecting:
 
 Fruit Fly Connectome
-        ↓
+↓
 Neural Simulation
-        ↓
+↓
 Decision Making
-        ↓
+↓
 Chess Move
 
 ## 🧠 Approach
@@ -36,24 +36,36 @@ The project is divided into several components:
 
 ## 📁 Project Structure
 
-flyChess/
-├── data/
-│   ├── raw/
-│   └── processed/
-│
-├── src/
-│   ├── brain/
-│   ├── chess/
-│   ├── connectome/
-│   ├── experiments/
-│   └── main.py
-│
-├── tests/
-├── web/
-│
-├── .gitignore
-├── README.md
-└── requirements.txt
+    flyChess/
+    ├── data/
+    │   ├── processed/
+    │   └── raw/
+    │
+    ├── src/
+    │   ├── brain/
+    │   │   ├── neuron.py
+    │   │   ├── output.py
+    │   │   └── simulation.py
+    │   │
+    │   ├── chess/
+    │   │   ├── agent.py
+    │   │   └── board.py
+    │   │
+    │   ├── connectome/
+    │   │   ├── graph.py
+    │   │   └── loader.py
+    │   │
+    │   ├── experiments/
+    │   │   └── experiment_001.py
+    │   │
+    │   └── main.py
+    │
+    ├── tests/
+    ├── web/
+    │
+    ├── .gitignore
+    ├── README.md
+    └── requirements.txt
 
 ## 🛠️ Tech Stack
 
