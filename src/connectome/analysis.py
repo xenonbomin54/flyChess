@@ -245,11 +245,7 @@ def trace_cell_type_path(
     min_synapses: int = 100,
     top_k_per_hop: int = 10,
 ) -> pd.DataFrame:
-    """Trace a cell-type-level pathway starting from a cell type.
-
-    Cell-type connections are aggregated first. The minimum
-    synapse threshold is applied to those aggregated connections.
-    """
+    """Trace a cell-type-level pathway starting from a cell type."""
 
     network = get_cell_type_network(
         graph,
@@ -528,3 +524,121 @@ def trace_specific_path(
             )
 
     return []
+
+
+def rank_visual_to_descending(
+    graph: nx.DiGraph,
+    visual_types: list[str] | None = None,
+    min_synapses: int = 100,
+    top_k: int = 20,
+) -> pd.DataFrame:
+    """Rank descending cell types receiving input from visual T4/T5 cells.
+
+    Ranking favors:
+    1. Number of distinct visual cell types connected to the target.
+    2. Total synapse count from visual cell types.
+    3. Number of neuron-to-neuron connections.
+    4. Strongest individual visual-cell-type connection.
+
+    This is a connectivity ranking only. It does not infer behavioral
+    function from cell type names.
+    """
+
+    if visual_types is None:
+        visual_types = [
+            "T4a",
+            "T4b",
+            "T4c",
+            "T4d",
+            "T5a",
+            "T5b",
+            "T5c",
+            "T5d",
+        ]
+
+    visual_set = set(visual_types)
+
+    network = get_cell_type_network(
+        graph,
+        min_synapses=min_synapses,
+    )
+
+    if network.empty:
+        return pd.DataFrame(
+            columns=[
+                "descending_type",
+                "visual_type_count",
+                "visual_types",
+                "total_synapses",
+                "connection_count",
+                "strongest_visual_type",
+                "strongest_synapses",
+            ]
+        )
+
+    candidates = network[
+        network["pre_type"].isin(visual_set)
+        & network["post_type"].str.startswith(
+            ("DN", "DNg")
+        )
+    ].copy()
+
+    if candidates.empty:
+        return pd.DataFrame(
+            columns=[
+                "descending_type",
+                "visual_type_count",
+                "visual_types",
+                "total_synapses",
+                "connection_count",
+                "strongest_visual_type",
+                "strongest_synapses",
+            ]
+        )
+
+    rows = []
+
+    for descending_type, group in candidates.groupby(
+        "post_type",
+        sort=False,
+    ):
+        group = group.sort_values(
+            "syn_count",
+            ascending=False,
+        )
+
+        rows.append(
+            {
+                "descending_type": descending_type,
+                "visual_type_count": int(
+                    group["pre_type"].nunique()
+                ),
+                "visual_types": ", ".join(
+                    group["pre_type"].tolist()
+                ),
+                "total_synapses": int(
+                    group["syn_count"].sum()
+                ),
+                "connection_count": int(
+                    group["connection_count"].sum()
+                ),
+                "strongest_visual_type": str(
+                    group.iloc[0]["pre_type"]
+                ),
+                "strongest_synapses": int(
+                    group.iloc[0]["syn_count"]
+                ),
+            }
+        )
+
+    result = pd.DataFrame(rows)
+
+    return result.sort_values(
+        [
+            "visual_type_count",
+            "total_synapses",
+            "connection_count",
+            "strongest_synapses",
+        ],
+        ascending=False,
+    ).head(top_k).reset_index(drop=True)
