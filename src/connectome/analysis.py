@@ -329,3 +329,202 @@ def trace_cell_type_path(
             )
 
     return pd.DataFrame(results)
+
+
+def find_cell_types_by_keywords(
+    graph: nx.DiGraph,
+    keywords: list[str],
+) -> pd.DataFrame:
+    """Find cell types whose names contain any of the given keywords."""
+
+    counts = count_neurons_by_type(graph)
+
+    if counts.empty:
+        return pd.DataFrame(
+            columns=[
+                "cell_type",
+                "neuron_count",
+                "matched_keyword",
+            ]
+        )
+
+    rows = []
+
+    for row in counts.itertuples(index=False):
+        cell_type = str(row.cell_type)
+
+        matches = [
+            keyword
+            for keyword in keywords
+            if keyword.lower() in cell_type.lower()
+        ]
+
+        if matches:
+            rows.append(
+                {
+                    "cell_type": cell_type,
+                    "neuron_count": int(row.neuron_count),
+                    "matched_keyword": ", ".join(matches),
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame(
+            columns=[
+                "cell_type",
+                "neuron_count",
+                "matched_keyword",
+            ]
+        )
+
+    return pd.DataFrame(rows).sort_values(
+        "neuron_count",
+        ascending=False,
+    ).reset_index(drop=True)
+
+
+def get_cell_type_summary(
+    graph: nx.DiGraph,
+    cell_type: str,
+) -> pd.DataFrame:
+    """Get neuron count and total input/output synapses for a cell type."""
+
+    summary = summarize_cell_types(graph)
+
+    result = summary[
+        summary["cell_type"] == cell_type
+    ].copy()
+
+    return result.reset_index(drop=True)
+
+
+def analyze_cell_type(
+    graph: nx.DiGraph,
+    cell_type: str,
+    top_k: int = 15,
+    min_synapses: int = 100,
+) -> dict[str, pd.DataFrame]:
+    """Analyze the main incoming and outgoing connections of a cell type."""
+
+    summary = get_cell_type_summary(
+        graph,
+        cell_type,
+    )
+
+    incoming = get_strong_connections(
+        graph=graph,
+        cell_type=cell_type,
+        direction="in",
+        top_k=top_k,
+    )
+
+    outgoing = get_strong_connections(
+        graph=graph,
+        cell_type=cell_type,
+        direction="out",
+        top_k=top_k,
+    )
+
+    if min_synapses > 1:
+        incoming = incoming[
+            incoming["syn_count"] >= min_synapses
+        ].reset_index(drop=True)
+
+        outgoing = outgoing[
+            outgoing["syn_count"] >= min_synapses
+        ].reset_index(drop=True)
+
+    return {
+        "summary": summary,
+        "incoming": incoming,
+        "outgoing": outgoing,
+    }
+
+
+def trace_specific_path(
+    graph: nx.DiGraph,
+    start_type: str,
+    target_type: str,
+    max_hops: int = 5,
+    min_synapses: int = 1000,
+    top_k_per_node: int = 10,
+) -> list[dict]:
+    """Find a strong cell-type path between two cell types."""
+
+    network = get_cell_type_network(
+        graph,
+        min_synapses=min_synapses,
+    )
+
+    if network.empty:
+        return []
+
+    outgoing: dict[str, list[tuple[str, int]]] = {}
+
+    for row in network.itertuples(index=False):
+        outgoing.setdefault(row.pre_type, []).append(
+            (
+                row.post_type,
+                int(row.syn_count),
+            )
+        )
+
+    for source_type in outgoing:
+        outgoing[source_type].sort(
+            key=lambda item: item[1],
+            reverse=True,
+        )
+
+    queue = deque(
+        [
+            (
+                start_type,
+                [start_type],
+                [],
+            )
+        ]
+    )
+
+    visited = {start_type}
+
+    while queue:
+        current_type, path, connections = queue.popleft()
+
+        if current_type == target_type:
+            return [
+                {
+                    "from_type": source,
+                    "to_type": target,
+                    "syn_count": syn_count,
+                }
+                for source, target, syn_count in connections
+            ]
+
+        if len(path) - 1 >= max_hops:
+            continue
+
+        for next_type, syn_count in outgoing.get(
+            current_type,
+            [],
+        )[:top_k_per_node]:
+
+            if next_type in visited:
+                continue
+
+            visited.add(next_type)
+
+            queue.append(
+                (
+                    next_type,
+                    path + [next_type],
+                    connections + [
+                        (
+                            current_type,
+                            next_type,
+                            syn_count,
+                        )
+                    ],
+                )
+            )
+
+    return []
