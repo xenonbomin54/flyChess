@@ -11,14 +11,12 @@ class NeuralSimulation:
     def __init__(
         self,
         graph: nx.DiGraph,
-        threshold: float = 1.0,
+        threshold: float = 0.1,
         decay: float = 0.9,
-        synapse_scale: float = 10.0,
     ):
         self.graph = graph
         self.threshold = threshold
         self.decay = decay
-        self.synapse_scale = synapse_scale
 
         self.neurons = {
             neuron_id: Neuron(
@@ -28,6 +26,29 @@ class NeuralSimulation:
             )
             for neuron_id in graph.nodes
         }
+
+        self.outgoing_totals = {}
+
+        for neuron_id in graph.nodes:
+            total = 0
+
+            for target in graph.successors(
+                neuron_id
+            ):
+                data = graph[
+                    neuron_id
+                ][target]
+
+                total += int(
+                    data.get(
+                        "syn_count",
+                        0,
+                    )
+                )
+
+            self.outgoing_totals[
+                neuron_id
+            ] = total
 
         self.last_fired: list[int] = []
 
@@ -43,7 +64,9 @@ class NeuralSimulation:
                 f"Unknown neuron: {neuron_id}"
             )
 
-        self.neurons[neuron_id].receive(signal)
+        self.neurons[
+            neuron_id
+        ].receive(signal)
 
     def stimulate_many(
         self,
@@ -60,46 +83,62 @@ class NeuralSimulation:
 
     def _connection_signal(
         self,
-        data: dict,
+        source: int,
+        target: int,
     ) -> float:
-        """Convert synapse count into a bounded neural signal."""
+        """Calculate normalized synaptic transmission."""
+
+        data = self.graph[
+            source
+        ][target]
 
         syn_count = float(
-            data.get("syn_count", 1)
+            data.get(
+                "syn_count",
+                0,
+            )
         )
 
-        return min(
-            syn_count / self.synapse_scale,
-            1.0,
+        total_output = float(
+            self.outgoing_totals.get(
+                source,
+                0,
+            )
         )
+
+        if total_output <= 0:
+            return 0.0
+
+        return syn_count / total_output
 
     def step(self) -> list[int]:
-        """Advance the network by one simulation step."""
+        """Advance one simulation step."""
 
         fired = []
 
-        # First evaluate every neuron using its current activity.
+        # Evaluate all neurons using their current activity.
         for neuron_id, neuron in self.neurons.items():
             if neuron.step():
-                fired.append(neuron_id)
+                fired.append(
+                    neuron_id
+                )
 
-        # Then propagate fired activity to downstream neurons.
+        # Propagate activity after the firing decision.
         for neuron_id in fired:
             for target in self.graph.successors(
                 neuron_id
             ):
-                data = self.graph[
-                    neuron_id
-                ][target]
-
                 signal = self._connection_signal(
-                    data
+                    neuron_id,
+                    target,
                 )
 
-                if signal > 0:
-                    self.neurons[
-                        target
-                    ].receive(signal)
+                if signal <= 0:
+                    continue
+
+                self.neurons[
+                    target
+                ].receive(signal)
 
         self.last_fired = fired
 
@@ -114,8 +153,9 @@ class NeuralSimulation:
         history = []
 
         for _ in range(steps):
-            fired = self.step()
-            history.append(fired)
+            history.append(
+                self.step()
+            )
 
         return history
 
@@ -123,7 +163,7 @@ class NeuralSimulation:
         self,
         neuron_id: int,
     ) -> float:
-        """Get current activity of a neuron."""
+        """Get current activity."""
 
         if neuron_id not in self.neurons:
             raise ValueError(
@@ -139,7 +179,7 @@ class NeuralSimulation:
         history: list[list[int]],
         neuron_ids: list[int],
     ) -> dict[int, int]:
-        """Count how many times selected neurons fired."""
+        """Count firing events for selected neurons."""
 
         counts = {
             neuron_id: 0
@@ -149,6 +189,8 @@ class NeuralSimulation:
         for fired in history:
             for neuron_id in fired:
                 if neuron_id in counts:
-                    counts[neuron_id] += 1
+                    counts[
+                        neuron_id
+                    ] += 1
 
         return counts
