@@ -1,4 +1,4 @@
-# 🪰 FlyChess
+# FlyChess
 
 > A computational experiment using fruit fly connectome data to play chess.
 
@@ -6,13 +6,13 @@ FlyChess explores whether a computational model based on the neural connections 
 
 The project uses publicly available fruit fly connectome data and attempts to connect neural activity with chess actions.
 
-## 🎯 Goal
+## Goal
 
 FlyChess explores what happens when a fruit fly's neural connections are connected to a chess game.
 
 Using real fruit fly connectome data, the project experiments with turning neural activity into chess moves.
 
-## 🧠 Approach
+## Approach
 
 The project is divided into several components:
 
@@ -22,7 +22,7 @@ The project is divided into several components:
 - **Experiments** — Running and recording different experiments
 - **Web** — Visualizing the brain simulation and chess game
 
-## 📁 Project Structure
+## Project Structure
 
     flyChess/
     ├── data/
@@ -55,7 +55,7 @@ The project is divided into several components:
     ├── README.md
     └── requirements.txt
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - Python
 - React
@@ -63,7 +63,7 @@ The project is divided into several components:
 - FlyWire Connectome Data
 - More to be added
 
-## 🚧 Project Status
+## Project Status
 
 **In Development**
 
@@ -76,23 +76,23 @@ Current focus:
 - [ ] Integrate chess
 - [ ] Build interactive visualization
 
-## 🔬 Experiments
+## Experiments
 
 Experiments will be documented as the project develops.
 
 Each experiment will investigate different ways of representing neural activity and connecting it to chess decision-making.
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This project is an experimental computational model.
 
 It does not claim that a real fruit fly understands or can play chess. The purpose is to explore what can be achieved by using biological neural connectivity as the basis for a computational system.
 
-## 📌 References
+## References
 
 - FlyWire
 - More references to be added
 
 ---
 
-Made with curiosity about brains, computation, and chess. 🪰♟️
+Made with curiosity about brains, computation, and chess. 
