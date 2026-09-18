@@ -46,42 +46,23 @@ DN_CANDIDATES = [
 
 ANNOTATION_COLUMNS = [
     "root_id",
-    "label",
-    "side",
-    "neuromere",
-    "nt_type",
-    "input_neuropils",
-    "output_neuropils",
-    "input_hemisphere",
-    "output_hemisphere",
     "flow",
     "super_class",
-    "class",
-    "sub_class",
+    "cell_class",
     "cell_type",
-    "resolved_type",
-    "gene",
-    "dimorphism",
-    "hemilineage",
+    "side",
     "nerve",
-    "nt_type_verified",
-    "neuropeptide_verified",
-    "body_part",
-    "function",
-    "name",
-    "group",
-    "connectivity_tag",
-    "mirror_twin_root_id",
-    "marker",
-    "sensory_in",
-    "effector_out",
+    "hemilineage",
+    "nt_type",
+    "hemibrain_type",
+    "morphology_group",
 ]
 
 
 def find_annotation_file(
     explicit_path: str | None,
 ) -> Path:
-    """Find the Codex annotation CSV."""
+    """Find the detailed FlyWire neuron annotation file."""
 
     if explicit_path:
         path = Path(explicit_path)
@@ -94,11 +75,15 @@ def find_annotation_file(
         return path
 
     candidates = [
-        Path("data/raw/annotations.csv"),
-        Path("data/raw/codex_annotations.csv"),
-        Path("data/raw/cell_annotations.csv"),
-        Path("data/raw/consolidated_annotations.csv"),
-        Path("data/raw/consolidated_cell_types.csv.gz"),
+        Path("data/raw/neuron_annotations.tsv"),
+        Path(
+            "data/raw/"
+            "Supplemental_file1_neuron_annotations.tsv"
+        ),
+        Path("data/raw/annotations.tsv"),
+        Path("data/raw/codex_annotations.tsv"),
+        Path("data/raw/cell_annotations.tsv"),
+        Path("data/raw/consolidated_annotations.tsv"),
     ]
 
     for path in candidates:
@@ -106,24 +91,36 @@ def find_annotation_file(
             return path
 
     raise FileNotFoundError(
-        "No annotation CSV found.\n"
+        "No detailed neuron annotation file found.\n\n"
         "Expected one of:\n"
         + "\n".join(
             f"  - {path}"
             for path in candidates
         )
         + "\n\n"
-        "Download the Codex annotation/cell data CSV "
-        "and place it under data/raw/."
+        "Download Supplemental_file1_neuron_annotations.tsv "
+        "into data/raw/."
     )
 
 
 def load_annotations(
     path: Path,
 ) -> pd.DataFrame:
-    """Load annotation CSV."""
+    """Load the FlyWire neuron annotation table."""
 
-    df = pd.read_csv(path)
+    suffix = path.suffix.lower()
+
+    if suffix == ".tsv":
+        df = pd.read_csv(
+            path,
+            sep="\t",
+            low_memory=False,
+        )
+    else:
+        df = pd.read_csv(
+            path,
+            low_memory=False,
+        )
 
     print()
     print("=" * 70)
@@ -143,27 +140,25 @@ def load_annotations(
 def normalize_columns(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Normalize common Codex column aliases."""
+    """Normalize annotation column names."""
 
     rename_map = {}
 
     aliases = {
-        "subclass": "sub_class",
-        "subClass": "sub_class",
         "superclass": "super_class",
         "superClass": "super_class",
-        "resolvedType": "resolved_type",
+        "cellClass": "cell_class",
+        "cellclass": "cell_class",
         "cellType": "cell_type",
+        "celltype": "cell_type",
         "rootId": "root_id",
         "rootID": "root_id",
-        "sensoryIn": "sensory_in",
-        "effectorOut": "effector_out",
-        "inputNeuropils": "input_neuropils",
-        "outputNeuropils": "output_neuropils",
-        "inputHemisphere": "input_hemisphere",
-        "outputHemisphere": "output_hemisphere",
-        "ntType": "nt_type",
-        "ntTypeVerified": "nt_type_verified",
+        "hemilineage": "hemilineage",
+        "hemilineage_name": "hemilineage",
+        "neurotransmitter": "nt_type",
+        "nt": "nt_type",
+        "nerve_entry": "nerve",
+        "nerve_exit": "nerve",
     }
 
     for source, target in aliases.items():
@@ -171,7 +166,26 @@ def normalize_columns(
             rename_map[source] = target
 
     if rename_map:
-        df = df.rename(columns=rename_map)
+        df = df.rename(
+            columns=rename_map
+        )
+
+    return df
+
+
+def normalize_cell_type_values(
+    df: pd.DataFrame,
+) -> pd.DataFrame:
+    """Normalize cell type values without changing their meaning."""
+
+    if "cell_type" not in df.columns:
+        return df
+
+    df["cell_type"] = (
+        df["cell_type"]
+        .astype(str)
+        .str.strip()
+    )
 
     return df
 
@@ -179,16 +193,18 @@ def normalize_columns(
 def filter_candidates(
     df: pd.DataFrame,
 ) -> pd.DataFrame:
-    """Find candidate DN annotations."""
+    """Find neurons belonging to candidate DN cell types."""
 
     if "cell_type" not in df.columns:
         raise ValueError(
-            "Annotation file does not contain "
-            "'cell_type'."
+            "Detailed annotation file does not contain "
+            "'cell_type'.\n\n"
+            "This usually means the wrong annotation file "
+            "was supplied."
         )
 
     result = df[
-        df["cell_type"].astype(str).isin(
+        df["cell_type"].isin(
             DN_CANDIDATES
         )
     ].copy()
@@ -199,7 +215,7 @@ def filter_candidates(
 def print_missing_columns(
     df: pd.DataFrame,
 ) -> None:
-    """Print which useful Codex fields are available."""
+    """Print useful annotation coverage."""
 
     print()
     print("=" * 70)
@@ -207,14 +223,21 @@ def print_missing_columns(
     print("=" * 70)
 
     for column in ANNOTATION_COLUMNS:
-        status = "YES" if column in df.columns else "NO"
-        print(f"{status:>3}  {column}")
+        status = (
+            "YES"
+            if column in df.columns
+            else "NO"
+        )
+
+        print(
+            f"{status:>3}  {column}"
+        )
 
 
 def print_candidate_summary(
     candidates: pd.DataFrame,
 ) -> None:
-    """Print annotation summary for candidate DNs."""
+    """Print detailed candidate DN annotations."""
 
     print()
     print("=" * 70)
@@ -227,20 +250,15 @@ def print_candidate_summary(
 
     preferred = [
         "cell_type",
-        "resolved_type",
         "flow",
         "super_class",
-        "class",
-        "sub_class",
-        "nerve",
-        "function",
-        "sensory_in",
-        "effector_out",
-        "input_neuropils",
-        "output_neuropils",
+        "cell_class",
         "side",
+        "nerve",
         "hemilineage",
         "nt_type",
+        "hemibrain_type",
+        "morphology_group",
     ]
 
     available = [
@@ -249,9 +267,22 @@ def print_candidate_summary(
         if column in candidates.columns
     ]
 
-    summary = candidates[
-        available
-    ].drop_duplicates()
+    summary = (
+        candidates[
+            available
+        ]
+        .drop_duplicates()
+        .sort_values(
+            by=[
+                column
+                for column in [
+                    "cell_type",
+                    "side",
+                ]
+                if column in available
+            ]
+        )
+    )
 
     print(
         summary.to_string(
@@ -263,11 +294,11 @@ def print_candidate_summary(
 def print_function_groups(
     candidates: pd.DataFrame,
 ) -> None:
-    """Group candidate neurons by functional annotation."""
+    """Group candidate DNs by broad annotation."""
 
     print()
     print("=" * 70)
-    print("FUNCTION / EFFECTOR SUMMARY")
+    print("FUNCTIONAL / ANATOMICAL GROUPS")
     print("=" * 70)
 
     if candidates.empty:
@@ -276,12 +307,10 @@ def print_function_groups(
     for column in [
         "flow",
         "super_class",
-        "class",
-        "sub_class",
+        "cell_class",
         "nerve",
-        "function",
-        "sensory_in",
-        "effector_out",
+        "hemilineage",
+        "nt_type",
     ]:
         if column not in candidates.columns:
             continue
@@ -297,10 +326,6 @@ def print_function_groups(
             .value_counts()
         )
 
-        if values.empty:
-            print("  Unknown")
-            continue
-
         for value, count in values.items():
             print(
                 f"  {value}: {count}"
@@ -310,7 +335,7 @@ def print_function_groups(
 def print_candidate_table(
     candidates: pd.DataFrame,
 ) -> None:
-    """Print compact one-row-per-cell-type table."""
+    """Print compact candidate table."""
 
     print()
     print("=" * 70)
@@ -322,15 +347,14 @@ def print_candidate_table(
 
     columns = [
         "cell_type",
-        "resolved_type",
         "flow",
         "super_class",
-        "class",
-        "sub_class",
+        "cell_class",
+        "side",
         "nerve",
-        "function",
-        "sensory_in",
-        "effector_out",
+        "hemilineage",
+        "nt_type",
+        "hemibrain_type",
     ]
 
     available = [
@@ -339,18 +363,21 @@ def print_candidate_table(
         if column in candidates.columns
     ]
 
+    table = (
+        candidates[
+            available
+        ]
+        .drop_duplicates()
+    )
+
     sort_columns = [
         column
         for column in [
             "cell_type",
-            "resolved_type",
+            "side",
         ]
         if column in available
     ]
-
-    table = candidates[
-        available
-    ].drop_duplicates()
 
     if sort_columns:
         table = table.sort_values(
@@ -391,8 +418,8 @@ def save_result(
 def main() -> None:
     parser = argparse.ArgumentParser(
         description=(
-            "Analyze Codex annotations for "
-            "DN candidates from the visual "
+            "Analyze detailed FlyWire annotations "
+            "for DN candidates from the visual "
             "connectome simulation."
         )
     )
@@ -402,7 +429,8 @@ def main() -> None:
         type=str,
         default=None,
         help=(
-            "Path to Codex annotation CSV."
+            "Path to detailed neuron annotation "
+            "TSV/CSV."
         ),
     )
 
@@ -413,9 +441,7 @@ def main() -> None:
             "data/processed/"
             "dn_candidate_annotations.csv"
         ),
-        help=(
-            "Output CSV path."
-        ),
+        help="Output CSV path.",
     )
 
     args = parser.parse_args()
@@ -429,6 +455,10 @@ def main() -> None:
     )
 
     annotations = normalize_columns(
+        annotations
+    )
+
+    annotations = normalize_cell_type_values(
         annotations
     )
 
@@ -468,10 +498,10 @@ def main() -> None:
     print("NEXT STEP")
     print("=" * 70)
     print(
-        "Use flow / class / function / "
-        "effector_out annotations to determine "
-        "which DN candidates have plausible "
-        "motor-output relevance."
+        "Use the detailed FlyWire annotations "
+        "to identify which candidate DNs are "
+        "descending neurons and what anatomical "
+        "class they belong to."
     )
     print(
         "Do not assign JUMP / WAIT labels yet."
@@ -480,5 +510,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-    
