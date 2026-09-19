@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from collections import defaultdict
-
-import networkx as nx
 import pandas as pd
+import networkx as nx
 
 from src.brain.simulation import NeuralSimulation
 from src.connectome.graph import build_graph
@@ -60,7 +58,8 @@ CANDIDATE_DNS = [
     "DNpe019",
 ]
 
-N_VISUAL_NEURONS = 30
+N_INPUTS_PER_TYPE = 30
+
 TOP_K = 8
 MIN_SYNAPSES = 5
 MAX_HOPS = 5
@@ -109,14 +108,7 @@ def select_visual_neurons(
             .tolist()
         )
 
-        if len(ids) < N_VISUAL_NEURONS:
-            raise ValueError(
-                f"{visual_type}: "
-                f"{len(ids)} neurons found, "
-                f"need {N_VISUAL_NEURONS}"
-            )
-
-        result[visual_type] = ids[:N_VISUAL_NEURONS]
+        result[visual_type] = ids[:N_INPUTS_PER_TYPE]
 
     return result
 
@@ -144,73 +136,127 @@ def select_candidate_dns(
     return result
 
 
+def get_top_neighbors(
+    graph: nx.DiGraph,
+    neuron_id: int,
+) -> list[int]:
+    if neuron_id not in graph:
+        return []
+
+    candidates = []
+
+    for target in graph.successors(neuron_id):
+        synapses = int(
+            graph[neuron_id][target].get(
+                "syn_count",
+                0,
+            )
+        )
+
+        if synapses < MIN_SYNAPSES:
+            continue
+
+        candidates.append(
+            (
+                target,
+                synapses,
+            )
+        )
+
+    candidates.sort(
+        key=lambda item: item[1],
+        reverse=True,
+    )
+
+    return [
+        target
+        for target, _ in candidates[:TOP_K]
+    ]
+
+
 def build_visual_circuit(
     graph: nx.DiGraph,
     visual_neurons: dict[str, list[int]],
 ) -> nx.DiGraph:
-    """Build the same bounded visual circuit used in strength analysis."""
+    """
+    Build a bounded visual circuit.
 
-    selected = set()
+    Starting from the selected T4/T5 neurons, each hop
+    follows only the top-K outgoing connections.
+
+    A neuron is expanded only once. This keeps the circuit
+    bounded and prevents cycles from repeatedly expanding.
+    """
+
+    initial_nodes = set()
 
     for neurons in visual_neurons.values():
-        selected.update(neurons)
+        for neuron_id in neurons:
+            if neuron_id in graph:
+                initial_nodes.add(neuron_id)
 
-    frontier = set(selected)
+    circuit = nx.DiGraph()
 
-    for _ in range(MAX_HOPS):
+    circuit.add_nodes_from(
+        initial_nodes
+    )
+
+    seen = set(initial_nodes)
+    frontier = set(initial_nodes)
+
+    print(
+        f"Initial frontier: "
+        f"{len(frontier):,}"
+    )
+
+    for hop in range(1, MAX_HOPS + 1):
         next_frontier = set()
+        added_edges = 0
 
-        for neuron_id in frontier:
-            if neuron_id not in graph:
-                continue
-
-            neighbors = []
-
-            for target in graph.successors(neuron_id):
-                synapses = int(
-                    graph[neuron_id][target].get(
-                        "syn_count",
-                        0,
-                    )
-                )
-
-                if synapses < MIN_SYNAPSES:
-                    continue
-
-                neighbors.append(
-                    (target, synapses)
-                )
-
-            neighbors.sort(
-                key=lambda item: item[1],
-                reverse=True,
+        for source in frontier:
+            neighbors = get_top_neighbors(
+                graph,
+                source,
             )
 
-            for target, _ in neighbors[:TOP_K]:
-                if target not in selected:
+            for target in neighbors:
+                data = graph[source][target]
+
+                circuit.add_edge(
+                    source,
+                    target,
+                    **data,
+                )
+
+                added_edges += 1
+
+                if target not in seen:
+                    seen.add(target)
                     next_frontier.add(target)
 
-        selected.update(next_frontier)
         frontier = next_frontier
+
+        print(
+            f"  hop {hop}: "
+            f"new_nodes={len(frontier):,} "
+            f"total_nodes={circuit.number_of_nodes():,} "
+            f"total_edges={circuit.number_of_edges():,}"
+        )
 
         if not frontier:
             break
 
-    return graph.subgraph(selected).copy()
+    return circuit
 
 
-def run_visual_simulation(
+def run_simulation(
     circuit: nx.DiGraph,
     visual_neurons: dict[str, list[int]],
     candidate_dns: dict[str, list[int]],
-) -> tuple[
-    dict[str, dict[str, int]],
-    dict[str, list[list[int]]],
-]:
+) -> dict[str, dict[str, int]]:
     results = {}
-    histories = {}
 
-    for visual_type, inputs in visual_neurons.items():
+    for visual_type in VISUAL_TYPES:
         print()
         print("=" * 70)
         print(f"SIMULATING {visual_type}")
@@ -222,6 +268,12 @@ def run_visual_simulation(
             decay=DECAY,
         )
 
+        inputs = [
+            neuron_id
+            for neuron_id in visual_neurons[visual_type]
+            if neuron_id in circuit
+        ]
+
         simulation.stimulate_many(
             inputs,
             signal=1.0,
@@ -231,81 +283,60 @@ def run_visual_simulation(
             steps=STEPS,
         )
 
-        histories[visual_type] = history
-
         dn_counts = {}
+
+        fired_sets = [
+            set(step)
+            for step in history
+        ]
 
         for dn_type, neuron_ids in candidate_dns.items():
             count = 0
 
-            for fired in history:
-                fired_set = set(fired)
-
-                for neuron_id in neuron_ids:
-                    if neuron_id in fired_set:
-                        count += 1
+            for fired in fired_sets:
+                count += sum(
+                    neuron_id in fired
+                    for neuron_id in neuron_ids
+                )
 
             dn_counts[dn_type] = count
 
         results[visual_type] = dn_counts
 
-        total_fired = sum(
+        total_events = sum(
             len(step)
             for step in history
         )
 
-        active_dns = {
+        active = {
             dn_type: count
             for dn_type, count in dn_counts.items()
             if count > 0
         }
 
         print(
-            f"total firing events: {total_fired}"
+            f"total firing events: "
+            f"{total_events}"
         )
+
         print(
             f"active candidate DNs: "
-            f"{len(active_dns)}"
+            f"{len(active)}"
         )
 
         for dn_type, count in sorted(
-            active_dns.items(),
+            active.items(),
             key=lambda item: item[1],
             reverse=True,
-        )[:15]:
+        ):
             print(
-                f"  {dn_type:10s} "
-                f"{count:4d}"
+                f"  {dn_type:10s} {count:4d}"
             )
 
-    return results, histories
+    return results
 
 
-def save_results(
-    results: dict[str, dict[str, int]],
-    path: str,
-) -> None:
-    rows = []
-
-    for visual_type, dn_counts in results.items():
-        for dn_type, firing_count in dn_counts.items():
-            rows.append(
-                {
-                    "visual_type": visual_type,
-                    "dn_type": dn_type,
-                    "firing_count": firing_count,
-                }
-            )
-
-    df = pd.DataFrame(rows)
-
-    df.to_csv(
-        path,
-        index=False,
-    )
-
-
-def print_cross_visual_summary(
+def print_summary(
     results: dict[str, dict[str, int]],
 ) -> None:
     print()
@@ -321,7 +352,12 @@ def print_cross_visual_summary(
         }
     )
 
-    rows = []
+    print(
+        f"{'DN':10s}"
+        f"{'visuals':>8s}"
+        f"{'total':>8s}"
+        f"{'max':>8s}"
+    )
 
     for dn_type in all_dns:
         values = [
@@ -332,7 +368,7 @@ def print_cross_visual_summary(
             for visual_type in VISUAL_TYPES
         ]
 
-        active_visuals = sum(
+        active = sum(
             value > 0
             for value in values
         )
@@ -340,42 +376,18 @@ def print_cross_visual_summary(
         total = sum(values)
         maximum = max(values)
 
-        rows.append(
-            (
-                dn_type,
-                active_visuals,
-                total,
-                maximum,
-                values,
-            )
-        )
+        if total == 0:
+            continue
 
-    rows.sort(
-        key=lambda row: (
-            row[1],
-            row[2],
-            row[3],
-        ),
-        reverse=True,
-    )
-
-    print(
-        f"{'DN':10s} "
-        f"{'visuals':>7s} "
-        f"{'total':>7s} "
-        f"{'max':>7s}"
-    )
-
-    for dn_type, active, total, maximum, _ in rows[:30]:
         print(
-            f"{dn_type:10s} "
-            f"{active:7d} "
-            f"{total:7d} "
-            f"{maximum:7d}"
+            f"{dn_type:10s}"
+            f"{active:8d}"
+            f"{total:8d}"
+            f"{maximum:8d}"
         )
 
 
-def print_visual_matrix(
+def print_matrix(
     results: dict[str, dict[str, int]],
 ) -> None:
     print()
@@ -383,7 +395,7 @@ def print_visual_matrix(
     print("VISUAL × DN FIRING MATRIX")
     print("=" * 70)
 
-    interesting_dns = sorted(
+    active_dns = sorted(
         {
             dn_type
             for visual_result in results.values()
@@ -391,6 +403,10 @@ def print_visual_matrix(
             if count > 0
         }
     )
+
+    if not active_dns:
+        print("No candidate DN fired.")
+        return
 
     print(
         "DN".ljust(12)
@@ -400,16 +416,14 @@ def print_visual_matrix(
         )
     )
 
-    for dn_type in interesting_dns:
-        values = []
-
-        for visual_type in VISUAL_TYPES:
-            values.append(
-                results[visual_type].get(
-                    dn_type,
-                    0,
-                )
+    for dn_type in active_dns:
+        values = [
+            results[visual_type].get(
+                dn_type,
+                0,
             )
+            for visual_type in VISUAL_TYPES
+        ]
 
         print(
             dn_type.ljust(12)
@@ -420,7 +434,7 @@ def print_visual_matrix(
         )
 
 
-def print_discriminative_outputs(
+def print_discriminative(
     results: dict[str, dict[str, int]],
 ) -> None:
     print()
@@ -445,6 +459,9 @@ def print_discriminative_outputs(
                 0,
             )
 
+            if own <= 0:
+                continue
+
             others = [
                 results[other].get(
                     dn_type,
@@ -453,9 +470,6 @@ def print_discriminative_outputs(
                 for other in VISUAL_TYPES
                 if other != visual_type
             ]
-
-            if own <= 0:
-                continue
 
             mean_other = (
                 sum(others) / len(others)
@@ -485,11 +499,33 @@ def print_discriminative_outputs(
 
         for score, dn_type, own, mean_other in scores[:10]:
             print(
-                f"  {dn_type:10s} "
-                f"score={score:.3f} "
-                f"own={own:3d} "
-                f"other_mean={mean_other:.2f}"
+                f"  {dn_type:10s}"
+                f" score={score:.3f}"
+                f" own={own}"
+                f" other_mean={mean_other:.2f}"
             )
+
+
+def save_results(
+    results: dict[str, dict[str, int]],
+    path: str,
+) -> None:
+    rows = []
+
+    for visual_type, dn_counts in results.items():
+        for dn_type, firing_count in dn_counts.items():
+            rows.append(
+                {
+                    "visual_type": visual_type,
+                    "dn_type": dn_type,
+                    "firing_count": firing_count,
+                }
+            )
+
+    pd.DataFrame(rows).to_csv(
+        path,
+        index=False,
+    )
 
 
 def main() -> None:
@@ -501,13 +537,13 @@ def main() -> None:
         CONNECTIONS_PATH
     )
 
+    annotations = load_annotations(
+        ANNOTATIONS_PATH
+    )
+
     print(
         f"Connection rows: "
         f"{len(connections):,}"
-    )
-
-    annotations = load_annotations(
-        ANNOTATIONS_PATH
     )
 
     print(
@@ -525,10 +561,13 @@ def main() -> None:
     )
 
     print(
-        f"Nodes: {graph.number_of_nodes():,}"
+        f"Nodes: "
+        f"{graph.number_of_nodes():,}"
     )
+
     print(
-        f"Edges: {graph.number_of_edges():,}"
+        f"Edges: "
+        f"{graph.number_of_edges():,}"
     )
 
     visual_neurons = select_visual_neurons(
@@ -569,26 +608,32 @@ def main() -> None:
         f"Circuit nodes: "
         f"{circuit.number_of_nodes():,}"
     )
+
     print(
         f"Circuit edges: "
         f"{circuit.number_of_edges():,}"
     )
 
-    results, _ = run_visual_simulation(
+    print()
+    print("=" * 70)
+    print("RUNNING NEURAL SIMULATION")
+    print("=" * 70)
+
+    results = run_simulation(
         circuit,
         visual_neurons,
         candidate_dns,
     )
 
-    print_cross_visual_summary(
+    print_summary(
         results
     )
 
-    print_visual_matrix(
+    print_matrix(
         results
     )
 
-    print_discriminative_outputs(
+    print_discriminative(
         results
     )
 
@@ -606,6 +651,7 @@ def main() -> None:
     print("=" * 70)
     print("DONE")
     print("=" * 70)
+
     print(
         f"Saved: {output_path}"
     )
