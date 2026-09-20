@@ -1,0 +1,35 @@
+dn_type,total_firing,active_visuals,max_firing,dominant_visual,dominant_share,mean_active_firing,dominance_gap,visual_selectivity,flow,super_class,cell_class,cell_sub_class,supertype,hemibrain_type,ito_lee_hemilineage,hartenstein_hemilineage,top_nt,top_nt_conf,known_nt,side,nerve,firing_T4a,firing_T4b,firing_T4c,firing_T4d,firing_T5a,firing_T5b,firing_T5c,firing_T5d
+DNb03,40,4,15,T4a,0.375,10.0,5.0,0.375,efferent,descending,,,,DNb03,putative_primary,putative_primary,acetylcholine,0.8740495430131815; 0.8751210009879646; 0.8797841979539885; 0.8899395068043566,,left; right,CV,15,7,0,0,8,10,0,0
+DNp15,29,4,9,T4a,0.3103448275862069,7.25,2.0,0.3103448275862069,efferent,descending,,,,DNp15,putative_primary,putative_primary,acetylcholine,0.7098878465098594; 0.7525971575167125,,left; right,CV,9,7,0,0,6,7,0,0
+DNg41,20,4,7,T4a,0.35,5.0,2.0,0.35,efferent,descending,,,,,putative_primary,putative_primary,acetylcholine; glutamate,0.518114872615264; 0.5622594848451485,,left; right,CV,7,4,0,0,4,5,0,0
+DNae002,17,4,6,T4b,0.35294117647058826,4.25,1.0,0.35294117647058826,efferent,descending,,,10543.0,DNa04,WEDd1,DALd,acetylcholine,0.7512410546899679; 0.7797306490608501,,left; right,CV,5,6,0,0,1,5,0,0
+DNbe001,15,4,5,T4b,0.3333333333333333,3.75,0.0,0.3333333333333333,efferent,descending,,,,PS103,putative_primary,putative_primary,acetylcholine,0.5678069222345702; 0.6659683866303248,,left; right,CV,3,5,0,0,2,5,0,0
+DNp26,14,4,5,T5b,0.35714285714285715,3.5,1.0,0.35714285714285715,efferent,descending,,,,DNp26,putative_primary,putative_primary,acetylcholine,0.7143791713320087; 0.7311114152663972,,left; right,CV,4,3,0,0,2,5,0,0
+DNae003,10,3,4,T4b,0.4,3.3333333333333335,0.0,0.4,efferent,descending,,,11314.0,PS040,WEDd1,DALd,acetylcholine,0.6735150518276354; 0.7619894502466836,,left; right,CV,2,4,0,0,0,4,0,0
+DNae010,9,3,3,T4a,0.3333333333333333,3.0,0.0,0.3333333333333333,efferent,descending,,,10543.0,PS016,WEDd1,DALd,acetylcholine,0.5437297186601767; 0.5971652786102315,,left; right,CV,3,3,0,0,0,3,0,0
+DNg71,9,3,3,T4a,0.3333333333333333,3.0,0.0,0.3333333333333333,efferent,descending,,,12670.0,,MD3,MD3,glutamate,0.7183163610219337; 0.7431034626887394,,left; right,CV,3,3,0,0,0,3,0,0
+DNa02,8,4,3,T5b,0.375,2.0,1.0,0.375,efferent,descending,,,10360.0,DNa02,WEDd1,DALd,acetylcholine,0.7908463208967288; 0.7941235871987472,acetylcholine,left; right,CV,2,2,0,0,1,3,0,0
+DNge006,6,4,3,T4a,0.5,1.5,2.0,0.5,efferent,descending,,,10668.0,,LB11,putative_primary,acetylcholine,0.4025194291776102; 0.8501133745899546,,left; right,CV,3,1,0,0,1,1,0,0
+DNg05_a,6,3,2,T4a,0.3333333333333333,2.0,0.0,0.3333333333333333,efferent,descending,,,14357.0,,LB12,LB12,acetylcholine,0.5218671264901753; 0.796531750829751,,left; right,CV,2,2,0,0,0,2,0,0
+DNg110,6,3,2,T4a,0.3333333333333333,2.0,0.0,0.3333333333333333,efferent,descending,,,20923.0,,LB12,LB12,acetylcholine,0.2985913643422235; 0.4370685629158426; 0.547972577824955; 0.6173711913940131; 0.7203956791279083,,left; right,CV,2,2,0,0,0,2,0,0
+DNge045,6,3,2,T4a,0.3333333333333333,2.0,0.0,0.3333333333333333,efferent,descending,,,14873.0,,LB3,LB3,acetylcholine,0.4133393980470374; 0.5358152561021975,,left; right,CV,2,2,0,0,0,2,0,0
+DNa16,5,3,3,T5b,0.6,1.6666666666666667,2.0,0.6,efferent,descending,,,10543.0,PS014,WEDd1,DALd,acetylcholine,0.7563913653909572; 0.78878451813127,,left; right,CV,1,1,0,0,0,3,0,0
+DNp31,5,4,2,T4d,0.4,1.25,1.0,0.4,efferent,descending,,,,DNp31,putative_primary,putative_primary,acetylcholine,0.6636929990441915; 0.7313642024713619,,left; right,CV,0,0,1,2,0,0,1,1
+DNb01,4,3,2,T5b,0.5,1.3333333333333333,1.0,0.5,efferent,descending,,,,DNb01,putative_primary,putative_primary,glutamate,0.7553801952688316; 0.8647404131665039,glutamate,left; right,CV,1,1,0,0,0,2,0,0
+DNge086,3,2,2,T4a,0.6666666666666666,1.5,1.0,0.6666666666666666,efferent,descending,,,11211.0,,LB6,LB6,acetylcholine; gaba,0.4200071121981218; 0.5551998427897182,,left; right,CV,2,1,0,0,0,0,0,0
+DNa10,3,3,1,T4c,0.3333333333333333,1.0,0.0,0.3333333333333333,efferent,descending,,,10090.0,DNa10,WEDd1,DALd,acetylcholine,0.6583663518937002; 0.6840797225724883,acetylcholine,left; right,CV,0,0,1,1,0,0,0,1
+DNpe019,3,3,1,T4a,0.3333333333333333,1.0,0.0,0.3333333333333333,efferent,descending,,,,PS296,putative_primary,putative_primary,acetylcholine,0.650513997819368; 0.6658302837932405,,left; right,CV,1,1,0,0,0,1,0,0
+DNa13,2,2,1,T4a,0.5,1.0,0.0,0.5,efferent,descending,,,10360.0,LAL041,WEDd1,DALd,acetylcholine,0.7483603778499214; 0.7640183880810811; 0.7641862858840088; 0.7760700954064992,,left; right,CV,1,0,0,0,0,1,0,0
+DNp18,2,2,1,T4b,0.5,1.0,0.0,0.5,efferent,descending,,,,DNp18,putative_primary,putative_primary,acetylcholine,0.4058895803077069; 0.4858456454953332,acetylcholine,left; right,CV,0,1,0,0,0,1,0,0
+DNa09,1,1,1,T5b,1.0,1.0,1.0,1.0,efferent,descending,,,10090.0,DNa09,WEDd1,DALd,acetylcholine,0.6117484847355326; 0.7105630982539142,,left; right,CV,0,0,0,0,0,1,0,0
+DNg42,1,1,1,T5b,1.0,1.0,1.0,1.0,efferent,descending,,,14046.0,,MX3,MX3,glutamate,0.5688255214464402; 0.7184547552216298,,left; right,CV,0,0,0,0,0,1,0,0
+DNp51,1,1,1,T5b,1.0,1.0,1.0,1.0,efferent,descending,,,,PS296,putative_primary,putative_primary,acetylcholine,0.5921071130786574; 0.6013303138798034,,left; right,CV,0,0,0,0,0,1,0,0
+DNa03,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,10360.0,DNa03,WEDd1,DALd,acetylcholine,0.8371623614386544; 0.8725299139153351,,left; right,CV,0,0,0,0,0,0,0,0
+DNa11,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,10360.0,VES008,WEDd1,DALd,acetylcholine,0.7457326212316912; 0.7509317507724427,,left; right,CV,0,0,0,0,0,0,0,0
+DNg04,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,14569.0,,LB12,LB12,acetylcholine,0.5425554539229523; 0.6152006633785639; 0.6241510558343283; 0.6565216010561359,,left; right,CV,0,0,0,0,0,0,0,0
+DNg46,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,13133.0,,MX3,MX3,glutamate,0.6282910968171612; 0.637177081347679,,left; right,CV,0,0,0,0,0,0,0,0
+DNg78,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,,,putative_primary,putative_primary,acetylcholine,0.6085703390451832; 0.8716042872196387,,left; right,CV,0,0,0,0,0,0,0,0
+DNge026,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,,,putative_primary,putative_primary,glutamate,0.4978346871812861; 0.6438195663122285,,left; right,CV,0,0,0,0,0,0,0,0
+DNge037,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,10216.0,,LB7__prim,LB7__prim,acetylcholine,0.794696682833693; 0.8000972567495844,,left; right,CV,0,0,0,0,0,0,0,0
+DNge043,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,11458.0,hb1499778528,LB3__prim,putative_primary,gaba,0.3958914899941227; 0.4135299721300461,,left; right,CV,0,0,0,0,0,0,0,0
+DNp22,0,0,0,,0.0,0.0,0.0,,efferent,descending,,,,,putative_primary,putative_primary,acetylcholine,0.5936953449015137; 0.6271119244348976,,left; right,CV,0,0,0,0,0,0,0,0
